@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+numpy
+faster-whisper
+sentence-transformers
+librosa
+groq
+python-dotenv
+deepface
+opencv-python
+mediapipe
+tf-keras

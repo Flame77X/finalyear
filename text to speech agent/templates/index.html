@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piper TTS Agent</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #bb86fc;
+            --text-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: var(--surface-color);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        textarea {
+            width: 90%;
+            height: 100px;
+            background-color: #2c2c2c;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 1rem;
+            color: #fff;
+            font-size: 1rem;
+            resize: none;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 0.8rem 2rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        audio {
+            margin-top: 1rem;
+            width: 100%;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎙️ Piper TTS Agent</h1>
+        <textarea id="textInput"
+            placeholder="Type something here...">Hello! This is a test of the local web TTS.</textarea>
+        <br>
+        <button id="speakBtn" onclick="speak()">Speak</button>
+        <div class="status" id="status">Ready</div>
+        <audio id="audioPlayer" controls></audio>
+    </div>
+
+    <script>
+        async function speak() {
+            const text = document.getElementById('textInput').value;
+            const btn = document.getElementById('speakBtn');
+            const status = document.getElementById('status');
+            const player = document.getElementById('audioPlayer');
+
+            if (!text.trim()) return;
+
+            btn.disabled = true;
+            status.textContent = "Synthesizing...";
+
+            try {
+                const response = await fetch('/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) throw new Error("Synthesis failed");
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                player.src = url;
+                player.style.display = 'block';
+                player.play();
+                status.textContent = "Playing...";
+
+                player.onended = () => { status.textContent = "Ready"; };
+
+            } catch (err) {
+                status.textContent = "Error: " + err.message;
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

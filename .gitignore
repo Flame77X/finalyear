@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Project Specific
+temp_audio/
+*.wav
+*.mp3
+.cache/
+scikit_learn_data/
