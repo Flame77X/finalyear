@@ -1,0 +1,410 @@
+{
+    "common": [
+        {
+            "id": "intro_1",
+            "text": "Tell me about yourself.",
+            "ideal_answer": "I am a skilled professional with experience in engineering. I am passionate about solving complex problems and working on innovative projects. I have a strong background in my field and enjoy continuous learning."
+        },
+        {
+            "id": "intro_2",
+            "text": "Can you introduce yourself?",
+            "ideal_answer": "I am a dedicated engineer with a focus on delivering high-quality results. My expertise lies in technical analysis and project execution. I am motivated to contribute to team success."
+        },
+        {
+            "id": "intro_3",
+            "text": "Tell me about your projects.",
+            "ideal_answer": "I have worked on several key projects involving design, analysis, and implementation. One notable project involved optimizing system performance, while another focused on developing a new feature set. These experiences honed my technical and project management skills."
+        },
+        {
+            "id": "intro_4",
+            "text": "What are your key strengths?",
+            "ideal_answer": "My key strengths include analytical problem-solving, technical proficiency in my domain, and effective communication. I adapt quickly to new challenges and work well in collaborative environments."
+        },
+        {
+            "id": "intro_5",
+            "text": "Why are you interested in this role?",
+            "ideal_answer": "I am interested in this role because it aligns perfectly with my skills and career aspirations. It offers an opportunity to work on challenging problems in a dynamic environment, where I can make a meaningful impact."
+        },
+        {
+            "id": "intro_6",
+            "text": "What are your career goals?",
+            "ideal_answer": "My goal is to grow as a technical expert and take on increasing responsibility. I aim to master advanced concepts in my field and eventually lead innovative projects that drive organizational success."
+        },
+        {
+            "id": "intro_7",
+            "text": "Tell me about a challenge you faced and how you overcame it.",
+            "ideal_answer": "I faced a significant technical hurdle in a recent project with tight deadlines. I analyzed the root cause, researched alternative solutions, and collaborated with my team to implement a fix, ensuring the project was delivered on time."
+        },
+        {
+            "id": "intro_8",
+            "text": "Do you have any questions for us?",
+            "ideal_answer": "Yes, I would love to know more about the team's current focus and the technologies you are planning to adopt in the near future. I am also interested in the company culture and growth opportunities."
+        }
+    ],
+    "branches": {
+        "CSE": [
+            {
+                "id": "cse_1",
+                "text": "What is a Data Structure?",
+                "ideal_answer": "A data structure is a valid format for organizing and storing data. Examples include arrays, linked lists, stacks, queues, trees, and graphs, each designed for specific efficient operations."
+            },
+            {
+                "id": "cse_2",
+                "text": "Explain the difference between a process and a thread.",
+                "ideal_answer": "A process is an instance of a program in execution with its own memory space, while a thread is a smaller unit of execution within a process that shares memory with other threads."
+            },
+            {
+                "id": "cse_3",
+                "text": "What is Object-Oriented Programming (OOP)?",
+                "ideal_answer": "OOP is a programming paradigm based on the concept of objects which contain data and code. Its four main pillars are Encapsulation, Abstraction, Inheritance, and Polymorphism."
+            },
+            {
+                "id": "cse_4",
+                "text": "What is a Database Management System (DBMS)?",
+                "ideal_answer": "A DBMS is software interface for interacting with databases. It allows users to define, create, query, update, and administer databases. Examples include MySQL, PostgreSQL, and Oracle."
+            },
+            {
+                "id": "cse_5",
+                "text": "Explain the concept of Normalization.",
+                "ideal_answer": "Normalization is the process of organizing data in a database to reduce redundancy and improve data integrity. It involves dividing large tables into smaller, related tables."
+            },
+            {
+                "id": "cse_6",
+                "text": "What is an Operating System?",
+                "ideal_answer": "An operating system is system software that manages computer hardware and software resources and provides common services for computer programs. Examples include Windows, Linux, and macOS."
+            },
+            {
+                "id": "cse_7",
+                "text": "What is the Time Complexity of an algorithm?",
+                "ideal_answer": "Time complexity quantifies the amount of time an algorithm takes to run as a function of the length of the input. It is often expressed using Big O notation, like O(n) or O(log n)."
+            },
+            {
+                "id": "cse_8",
+                "text": "Explain the TCP/IP model.",
+                "ideal_answer": "The TCP/IP model is a suite of communication protocols used to interconnect network devices on the internet. It consists of four layers: Application, Transport, Internet, and Network Access."
+            },
+            {
+                "id": "cse_9",
+                "text": "What is Cloud Computing?",
+                "ideal_answer": "Cloud computing is the delivery of computing services like servers, storage, databases, and networking over the internet ('the cloud') to offer faster innovation and flexible resources."
+            },
+            {
+                "id": "cse_10",
+                "text": "What is the difference between specific and generic programming?",
+                "ideal_answer": "Specific programming writes code for specific types, while generic programming writes code that can handle a variety of data types, increasing code reusability."
+            }
+        ],
+        "AI": [
+            {
+                "id": "ai_1",
+                "text": "What is Artificial Intelligence?",
+                "ideal_answer": "AI is the simulation of human intelligence processes by machines, especially computer systems. These processes include learning, reasoning, and self-correction."
+            },
+            {
+                "id": "ai_2",
+                "text": "Explain the difference between Supervised and Unsupervised learning.",
+                "ideal_answer": "Supervised learning uses labeled data to train models to predict outcomes, while unsupervised learning uses unlabeled data to find hidden patterns or intrinsic structures."
+            },
+            {
+                "id": "ai_3",
+                "text": "What is a Neural Network?",
+                "ideal_answer": "A neural network is a series of algorithms that endeavors to recognize underlying relationships in a set of data through a process that mimics the way the human brain operates."
+            },
+            {
+                "id": "ai_4",
+                "text": "Define Overfitting.",
+                "ideal_answer": "Overfitting occurs when a machine learning model learns the training data too well, capturing noise and details that don't apply to new data, negatively impacting its performance."
+            },
+            {
+                "id": "ai_5",
+                "text": "What is Natural Language Processing (NLP)?",
+                "ideal_answer": "NLP is a branch of AI that gives computers the ability to understand, interpret, and generate human language in a useful way."
+            },
+            {
+                "id": "ai_6",
+                "text": "What is Deep Learning?",
+                "ideal_answer": "Deep learning is a subset of machine learning based on artificial neural networks with multiple layers (deep neural networks). It is particularly good at learning from large amounts of unstructured data."
+            },
+            {
+                "id": "ai_7",
+                "text": "Explain the concept of Backpropagation.",
+                "ideal_answer": "Backpropagation is an algorithm used for training neural networks. It calculates the gradient of the loss function with respect to the weights, allowing the network to update weights to minimize error."
+            },
+            {
+                "id": "ai_8",
+                "text": "What is Computer Vision?",
+                "ideal_answer": "Computer vision is a field of AI that enables computers and systems to derive meaningful information from digital images, videos, and other visual inputs."
+            },
+            {
+                "id": "ai_9",
+                "text": "What is Reinforcement Learning?",
+                "ideal_answer": "Reinforcement learning is an area of ML concerned with how intelligent agents ought to take actions in an environment in order to maximize the notion of cumulative reward."
+            },
+            {
+                "id": "ai_10",
+                "text": "What is a Confusion Matrix?",
+                "ideal_answer": "A confusion matrix is a table used to describe the performance of a classification model. It shows true positives, true negatives, false positives, and false negatives."
+            }
+        ],
+        "CIVIL": [
+            {
+                "id": "ce_1",
+                "text": "What is Concrete made of?",
+                "ideal_answer": "Concrete is a composite material composed mainly of water, aggregate (gravel and sand), and cement. Admixtures may be added to modify its properties."
+            },
+            {
+                "id": "ce_2",
+                "text": "What is the difference between a beam and a column?",
+                "ideal_answer": "A beam is a horizontal structural element that primarily resists vertical loads, while a column is a vertical structural element that transmits compressive loads."
+            },
+            {
+                "id": "ce_3",
+                "text": "Explain Tensile Strength.",
+                "ideal_answer": "Tensile strength is the maximum stress that a material can withstand while being stretched or pulled before breaking."
+            },
+            {
+                "id": "ce_4",
+                "text": "What is Curing of concrete?",
+                "ideal_answer": "Curing is the process of maintaining adequate moisture, temperature, and time for the concrete to achieve its desired properties and strength."
+            },
+            {
+                "id": "ce_5",
+                "text": "What is Soil Mechanics?",
+                "ideal_answer": "Soil mechanics is a branch of civil engineering that studies the behavior of soil under stress and its application in foundation design and earthworks."
+            },
+            {
+                "id": "ce_6",
+                "text": "What is a Foundation?",
+                "ideal_answer": "A foundation is the lowest part of a building or structure that transfers its load to the underlying soil or rock."
+            },
+            {
+                "id": "ce_7",
+                "text": "What is Surveying?",
+                "ideal_answer": "Surveying is the technique of determining the terrestrial or three-dimensional positions of points and the distances and angles between them."
+            },
+            {
+                "id": "ce_8",
+                "text": "What is the purpose of Reinforcement in concrete?",
+                "ideal_answer": "Reinforcement, usually steel bars (rebar), is used in concrete to provide tensile strength, as concrete is strong in compression but weak in tension."
+            },
+            {
+                "id": "ce_9",
+                "text": "What is Hydraulics?",
+                "ideal_answer": "Hydraulics is the branch of science and engineering concerned with the mechanical properties of liquids and the engineering applications of fluid properties."
+            },
+            {
+                "id": "ce_10",
+                "text": "What is Sustainable Construction?",
+                "ideal_answer": "Sustainable construction involves using resource-efficient and environmentally responsible processes throughout a building's lifecycle."
+            }
+        ],
+        "MECHANICAL": [
+            {
+                "id": "me_1",
+                "text": "What is Thermodynamics?",
+                "ideal_answer": "Thermodynamics is the branch of physics that deals with heat, work, and temperature, and their relation to energy, radiation, and physical properties of matter."
+            },
+            {
+                "id": "me_2",
+                "text": "State the Second Law of Thermodynamics.",
+                "ideal_answer": "The Second Law states that the total entropy of an isolated system can never decrease over time, and that heat naturally flows from a hotter body to a colder one."
+            },
+            {
+                "id": "me_3",
+                "text": "What is a Gear?",
+                "ideal_answer": "A gear is a rotating circular machine part having cut teeth which mesh with another toothed part to transmit torque and speed."
+            },
+            {
+                "id": "me_4",
+                "text": "Difference between Stress and Strain.",
+                "ideal_answer": "Stress is the internal resisting force per unit area within a material, while strain is the deformation or change in shape produced by the stress."
+            },
+            {
+                "id": "me_5",
+                "text": "What is a Fluid?",
+                "ideal_answer": "A fluid is a substance that continually deforms (flows) under an applied shear stress. Fluids include liquids, gases, and plasmas."
+            },
+            {
+                "id": "me_6",
+                "text": "What is a Heat Exchanger?",
+                "ideal_answer": "A heat exchanger is a system used to transfer heat between two or more fluids. Heat exchangers are used in both cooling and heating processes."
+            },
+            {
+                "id": "me_7",
+                "text": "What is Milling?",
+                "ideal_answer": "Milling is a machining process of removing material by feeding a workpiece past a rotating multipoint cutter."
+            },
+            {
+                "id": "me_8",
+                "text": "What is Internal Combustion Engine (ICE)?",
+                "ideal_answer": "An ICE is a heat engine where the combustion of a fuel occurs with an oxidizer (usually air) in a combustion chamber that is an integral part of the working fluid flow circuit."
+            },
+            {
+                "id": "me_9",
+                "text": "What is Aerodynamics?",
+                "ideal_answer": "Aerodynamics is the study of how gases interact with moving bodies. It is primarily concerned with the forces of lift and drag."
+            },
+            {
+                "id": "me_10",
+                "text": "What is Manufacturing?",
+                "ideal_answer": "Manufacturing is the production of products for use or sale using labor and machines, tools, chemical and biological processing, or formulation."
+            }
+        ],
+        "EC": [
+            {
+                "id": "ec_1",
+                "text": "What is a Semiconductor?",
+                "ideal_answer": "A semiconductor is a material which has an electrical conductivity value falling between that of a conductor (like copper) and an insulator (like glass)."
+            },
+            {
+                "id": "ec_2",
+                "text": "What is a Transistor?",
+                "ideal_answer": "A transistor is a semiconductor device used to amplify or switch electrical signals and power. It is one of the basic building blocks of modern electronics."
+            },
+            {
+                "id": "ec_3",
+                "text": "What is Modulation?",
+                "ideal_answer": "Modulation is the process of varying one or more properties of a periodic waveform, called the carrier signal, with a modulating signal that contains information to be transmitted."
+            },
+            {
+                "id": "ec_4",
+                "text": "Difference between Analog and Digital signals.",
+                "ideal_answer": "Analog signals are continuous signals that vary over time, while digital signals are discrete signals that represent data as a sequence of distinct values (usually 0s and 1s)."
+            },
+            {
+                "id": "ec_5",
+                "text": "What is a Microcontroller?",
+                "ideal_answer": "A microcontroller is a compact integrated circuit designed to govern a specific operation in an embedded system. It typically includes a processor, memory, and I/O peripherals."
+            },
+            {
+                "id": "ec_6",
+                "text": "What is an Operational Amplifier (Op-Amp)?",
+                "ideal_answer": "An op-amp is a DC-coupled high-gain electronic voltage amplifier with a differential input and, usually, a single-ended output."
+            },
+            {
+                "id": "ec_7",
+                "text": "What is PCB?",
+                "ideal_answer": "PCB stands for Printed Circuit Board. It mechanically supports and electrically connects electronic components using conductive tracks found on a non-conductive substrate."
+            },
+            {
+                "id": "ec_8",
+                "text": "What is VLSI?",
+                "ideal_answer": "VLSI (Very Large Scale Integration) is the process of creating an integrated circuit (IC) by combining millions of MOS transistors onto a single chip."
+            },
+            {
+                "id": "ec_9",
+                "text": "What is Communication System?",
+                "ideal_answer": "A communication system is a collection of individual communications networks, transmission systems, relay stations, tributary stations, and data terminal equipment usually capable of interconnection and interoperation."
+            },
+            {
+                "id": "ec_10",
+                "text": "What is IoT?",
+                "ideal_answer": "The Internet of Things (IoT) describes the network of physical objects—'things'—that are embedded with sensors, software, and other technologies for the purpose of connecting and exchanging data with other devices and systems."
+            }
+        ],
+        "EEE": [
+            {
+                "id": "eee_1",
+                "text": "State Ohm's Law.",
+                "ideal_answer": "Ohm's law states that the current through a conductor between two points is directly proportional to the voltage across the two points. V = IR."
+            },
+            {
+                "id": "eee_2",
+                "text": "What is the difference between AC and DC?",
+                "ideal_answer": "Direct Current (DC) flows in one direction, while Alternating Current (AC) changes direction periodically."
+            },
+            {
+                "id": "eee_3",
+                "text": "What is a Transformer?",
+                "ideal_answer": "A transformer is a passive electrical device that transfers electrical energy from one electrical circuit to another, or multiple circuits, through electromagnetic induction."
+            },
+            {
+                "id": "eee_4",
+                "text": "What is a Circuit Breaker?",
+                "ideal_answer": "A circuit breaker is an automatically operated electrical switch designed to protect an electrical circuit from damage caused by excess current from an overload or short circuit."
+            },
+            {
+                "id": "eee_5",
+                "text": "What is a Motor?",
+                "ideal_answer": "An electric motor is an electrical machine that converts electrical energy into mechanical energy."
+            },
+            {
+                "id": "eee_6",
+                "text": "What is Power Factor?",
+                "ideal_answer": "Power factor is the ratio of real power flowing to the load to the apparent power in the circuit. It is a measure of how effectively electricity is being used."
+            },
+            {
+                "id": "eee_7",
+                "text": "What is a Generator?",
+                "ideal_answer": "A generator is a device that converts motive power (mechanical energy) into electrical power for use in an external circuit."
+            },
+            {
+                "id": "eee_8",
+                "text": "What is Earthing?",
+                "ideal_answer": "Earthing or grounding is the process of transferring the immediate discharge of electrical energy directly to the earth by the help of the low resistance wire."
+            },
+            {
+                "id": "eee_9",
+                "text": "What is Transmission and Distribution?",
+                "ideal_answer": "Transmission is the bulk movement of electrical energy from a generating site to an electrical substation. Distribution is the final stage in the delivery of electric power to individual consumers."
+            },
+            {
+                "id": "eee_10",
+                "text": "What is a Diode?",
+                "ideal_answer": "A diode is a two-terminal electronic component that conducts current primarily in one direction; it has low resistance in one direction, and high resistance in the other."
+            }
+        ],
+        "ISE": [
+            {
+                "id": "ise_1",
+                "text": "What is a Data Structure?",
+                "ideal_answer": "A data structure is a valid format for organizing and storing data. Examples include arrays, linked lists, stacks, queues, trees, and graphs, each designed for specific efficient operations."
+            },
+            {
+                "id": "ise_2",
+                "text": "Explain the difference between a process and a thread.",
+                "ideal_answer": "A process is an instance of a program in execution with its own memory space, while a thread is a smaller unit of execution within a process that shares memory with other threads."
+            },
+            {
+                "id": "ise_3",
+                "text": "What is Object-Oriented Programming (OOP)?",
+                "ideal_answer": "OOP is a programming paradigm based on the concept of objects which contain data and code. Its four main pillars are Encapsulation, Abstraction, Inheritance, and Polymorphism."
+            },
+            {
+                "id": "ise_4",
+                "text": "What is a Database Management System (DBMS)?",
+                "ideal_answer": "A DBMS is software interface for interacting with databases. It allows users to define, create, query, update, and administer databases. Examples include MySQL, PostgreSQL, and Oracle."
+            },
+            {
+                "id": "ise_5",
+                "text": "Explain the concept of Normalization.",
+                "ideal_answer": "Normalization is the process of organizing data in a database to reduce redundancy and improve data integrity. It involves dividing large tables into smaller, related tables."
+            },
+            {
+                "id": "ise_6",
+                "text": "What is an Operating System?",
+                "ideal_answer": "An operating system is system software that manages computer hardware and software resources and provides common services for computer programs. Examples include Windows, Linux, and macOS."
+            },
+            {
+                "id": "ise_7",
+                "text": "What is the Time Complexity of an algorithm?",
+                "ideal_answer": "Time complexity quantifies the amount of time an algorithm takes to run as a function of the length of the input. It is often expressed using Big O notation, like O(n) or O(log n)."
+            },
+            {
+                "id": "ise_8",
+                "text": "Explain the TCP/IP model.",
+                "ideal_answer": "The TCP/IP model is a suite of communication protocols used to interconnect network devices on the internet. It consists of four layers: Application, Transport, Internet, and Network Access."
+            },
+            {
+                "id": "ise_9",
+                "text": "What is Cloud Computing?",
+                "ideal_answer": "Cloud computing is the delivery of computing services like servers, storage, databases, and networking over the internet ('the cloud') to offer faster innovation and flexible resources."
+            },
+            {
+                "id": "ise_10",
+                "text": "What is Information Retrieval?",
+                "ideal_answer": "Information retrieval is the process of obtaining information system resources that are relevant to an information need from a collection of those resources."
+            }
+        ]
+    }
+}

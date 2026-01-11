@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+backend/venv/
+backend/.env
+*.log
+
+# Node/React
+web_client/node_modules/
+web_client/dist/
+web_client/.env.local
+
+# Project Specific
+backend/temp_audio/
+backend/history.json
+*.mp3
+*.wav
+*.webm
+
+# Legacy/Backup Folders (Optional - Verify if you want to push these)
+backend/brain_agent_legacy/
+backend/tts_agent_legacy/
+frontend_legacy/
+node_modules_legacy/
+
+# OS
+.DS_Store
+Thumbs.db

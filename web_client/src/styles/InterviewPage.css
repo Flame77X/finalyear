@@ -1,0 +1,345 @@
+/* File: web_client/src/styles/InterviewPage.css */
+
+/* Base Reset & Font */
+.interview-container {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: #000000;
+  /* Deepest black */
+  color: #e0e0e0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow: hidden;
+  display: flex;
+}
+
+/* ===== LEFT SIDEBAR ===== */
+.sidebar {
+  width: 65px;
+  height: 100%;
+  background: #0a0a0a;
+  border-right: 1px solid #222;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 20px;
+  z-index: 10;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background: #fff;
+  border-radius: 50%;
+  color: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 40px;
+}
+
+.nav-item {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #666;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-item.active {
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.1);
+}
+
+.nav-item:hover {
+  color: white;
+}
+
+/* ===== MAIN CONTENT WRAPPER ===== */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Header (Top Bar) */
+.top-bar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  font-size: 1.2rem;
+  font-family: 'Playfair Display', serif;
+  /* Serif for Voca AI look */
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+/* SPLIT PANE LAYOUT */
+.split-pane {
+  flex: 1;
+  display: flex;
+  padding: 0 20px 80px 20px;
+  /* Bottom padding for control bar */
+  gap: 20px;
+}
+
+/* Left Pane: AI Avatar Logic */
+.ai-pane {
+  flex: 1;
+  background: #0a0a0a;
+  border-radius: 20px;
+  border: 1px solid #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  /* Changed to column for better vertical centering of children */
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-avatar-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  animation: pulse-ring 3s infinite;
+}
+
+.listening-indicator {
+  margin-top: 15px;
+  display: flex;
+  gap: 4px;
+}
+
+.bar {
+  width: 4px;
+  height: 15px;
+  background: #666;
+  border-radius: 2px;
+  animation: equalize 1s infinite alternate;
+}
+
+.bar:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.bar:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.bar:nth-child(4) {
+  animation-delay: 0.1s;
+}
+
+.bar:nth-child(5) {
+  animation-delay: 0.3s;
+}
+
+/* Right Pane: User Camera */
+.user-pane {
+  flex: 1;
+  background: #000;
+  border-radius: 20px;
+  border: 1px solid #1a1a1a;
+  position: relative;
+  /* CRITICAL: Anchors the absolute transcript overlay */
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.camera-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.live-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #ff3b30;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+}
+
+/* Transcript Overlay (Bottom of user pane) */
+.transcript-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 30px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.transcript-label {
+  color: #00e5ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.current-transcript {
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* ===== BOTTOM CONTROL BAR ===== */
+.bottom-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 800px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 100;
+}
+
+.timer {
+  color: #aaa;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  min-width: 50px;
+}
+
+.chat-input-wrapper {
+  flex: 1;
+  background: #1a1a1a;
+  border-radius: 30px;
+  padding: 0 20px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #333;
+}
+
+.chat-input {
+  background: transparent;
+  border: none;
+  color: white;
+  width: 100%;
+  font-size: 0.95rem;
+}
+
+.chat-input:focus {
+  outline: none;
+}
+
+.mic-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.mic-btn:hover {
+  transform: scale(1.1);
+}
+
+.mic-btn.active {
+  background: #00e5ff;
+}
+
+.end-btn {
+  padding: 0 24px;
+  height: 40px;
+  border-radius: 20px;
+  background: transparent;
+  border: 1px solid #333;
+  color: #aaa;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.end-btn:hover {
+  background: #222;
+  color: white;
+  border-color: #555;
+}
+
+.files-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 20px;
+  color: #aaa;
+  cursor: pointer;
+}
+
+/* Animations */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.1);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+@keyframes equalize {
+  0% {
+    height: 10px;
+  }
+
+  100% {
+    height: 25px;
+  }
+}
