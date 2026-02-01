@@ -1,11 +1,33 @@
 from typing import List, Dict, Tuple
 import logging
+import os
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+class KeywordAnalysis(BaseModel):
+    matched_keywords: List[str] = Field(description="List of relevant technical keywords found in the text")
+    missing_keywords: List[str] = Field(description="List of expected keywords that were missing")
+    keyword_score: float = Field(description="A score from 0 to 100 representing domain relevance coverage")
+
 class KeywordScorer:
     def __init__(self):
-        self.kw_model = None
+        self.api_key = os.getenv("GROQ_API_KEY")
+        if self.api_key:
+            self.llm = ChatGroq(
+                temperature=0.0,
+                model_name="llama-3.3-70b-versatile", 
+                api_key=self.api_key
+            )
+        else:
+            logger.warning("GROQ_API_KEY not found. Keyword scoring will fallback or fail.")
+            self.llm = None
+            
+        # Hardcoded fallback merely for safekeeping if LLM fails, 
+        # ideally we should fetch from questions.json if we had topic metadata there.
         self.domain_keywords = {
             'cse': ['algorithm', 'database', 'api', 'system design', 'oop', 'java', 'python', 'sql', 'networking', 'os'],
             'ai': ['machine learning', 'deep learning', 'neural network', 'nlp', 'pytorch', 'tensorflow', 'model'],
@@ -16,50 +38,65 @@ class KeywordScorer:
         }
 
     def _load_keybert(self):
-        if not self.kw_model:
-            try:
-                from keybert import KeyBERT
-                self.kw_model = KeyBERT('all-MiniLM-L6-v2')
-            except ImportError:
-                logger.warning("KeyBERT not installed. Using fallback keyword matching.")
-                self.kw_model = None
+        # Deprecated: No longer loading KeyBERT locally to save resources.
+        pass
 
     def extract_and_score(self, transcript: str, job_role: str = 'cse', top_n: int = 10) -> Dict:
         """
-        Extracts keywords and scores them against the expected domain keywords.
+        Extracts keywords and scores them using LLM reasoning.
         """
-        self._load_keybert()
         job_role = job_role.lower()
         
-        # 1. Extraction
-        extracted_keywords = []
-        if self.kw_model:
-            try:
-                extracted_data = self.kw_model.extract_keywords(
-                    transcript, keyphrase_ngram_range=(1, 2), stop_words='english', top_n=top_n
-                )
-                extracted_keywords = [k[0] for k in extracted_data]
-            except Exception as e:
-                logger.error(f"KeyBERT extraction failed: {e}")
-        
-        # Fallback if KeyBERT failed or not installed: Simple split (naive)
-        if not extracted_keywords:
-            extracted_keywords = list(set(transcript.lower().split()))
+        # 1. Fallback Logic (if LLM unavailable)
+        if not self.llm:
+            return self._fallback_score(transcript, job_role)
 
-        # 2. Matching
-        expected = self.domain_keywords.get(job_role, self.domain_keywords['cse'])
-        matched = [k for k in extracted_keywords if any(exp in k.lower() for exp in expected)]
+        # 2. LLM Logic
+        parser = JsonOutputParser(pydantic_object=KeywordAnalysis)
         
-        # 3. Scoring
-        # Coverage: What % of EXTRACTED keywords are relevant? (Precision focus)
-        # OR What % of EXPECTED keywords were mentioned? (Recall focus) -> Better for interview
+        # We define a "Reference Set" based on our basic domain map to guide the LLM, 
+        # but allow it to find synonyms or related relevant terms.
+        expected_examples = ", ".join(self.domain_keywords.get(job_role, self.domain_keywords['cse']))
         
-        # We check mentions in the raw text too, to be generous
+        prompt = ChatPromptTemplate.from_template(
+            "You are an expert technical interviewer evaluating an answer.\n"
+            "Domain: {job_role}\n"
+            "Candidate Transcript: \"{transcript}\"\n\n"
+            "Tasks:\n"
+            "1. Identify technical keywords/concepts present in the transcript.\n"
+            "2. Compare them against standard expectations for this domain (Examples: {expected_examples}).\n"
+            "3. Calculate a relevance score (0-100) based on the density and quality of technical terms used.\n"
+            "\n{format_instructions}"
+        )
+        
+        chain = prompt | self.llm | parser
+        
+        try:
+            result = chain.invoke({
+                "job_role": job_role,
+                "transcript": transcript,
+                "expected_examples": expected_examples,
+                "format_instructions": parser.get_format_instructions()
+            })
+            
+            return {
+                'keyword_score': result.get('keyword_score', 0),
+                'matched_keywords': result.get('matched_keywords', []),
+                'missing_keywords': result.get('missing_keywords', []),
+                'success': True
+            }
+        except Exception as e:
+            logger.error(f"LLM Keyword Analysis failed: {e}")
+            return self._fallback_score(transcript, job_role)
+
+    def _fallback_score(self, transcript: str, job_role: str) -> Dict:
+        """Simple substring matching fallback."""
         raw_text_lower = transcript.lower()
-        actual_matches = [exp for exp in expected if exp in raw_text_lower]
+        expected = self.domain_keywords.get(job_role, self.domain_keywords['cse'])
         
+        actual_matches = [exp for exp in expected if exp in raw_text_lower]
         coverage = len(actual_matches) / len(expected) if expected else 0
-        keyword_score = min(100.0, coverage * 100 * 1.5) # multiplier to make it achievable (getting 60% of keywords is great)
+        keyword_score = min(100.0, coverage * 100 * 1.5)
 
         return {
             'keyword_score': round(keyword_score, 1),

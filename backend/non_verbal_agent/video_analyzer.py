@@ -51,8 +51,8 @@ class NonVerbalAgent:
                         res = res[0]
                     
                     raw_emotions = res.get('emotion', {})
-                    # Normalize 0-100 -> 0-1
-                    emotions = {k: v/100.0 for k, v in raw_emotions.items()}
+                    # Normalize 0-100 -> 0-1, verify float conversion
+                    emotions = {k: float(v)/100.0 for k, v in raw_emotions.items()}
                 except Exception as e:
                     logger.debug(f"DeepFace analyze failed (no face?): {e}")
 
@@ -75,11 +75,11 @@ class NonVerbalAgent:
             confidence = self._calculate_aggregate_confidence(emotions, eye_contact, posture_score)
 
             return {
-                'confidence_score': confidence,
+                'confidence_score': float(confidence),
                 'emotions': emotions,
                 'facial_expression': max(emotions, key=emotions.get),
-                'eye_contact': eye_contact,
-                'posture_score': posture_score,
+                'eye_contact': float(eye_contact),
+                'posture_score': float(posture_score),
                 'success': True
             }
 

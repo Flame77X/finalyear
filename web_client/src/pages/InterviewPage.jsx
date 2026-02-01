@@ -23,6 +23,22 @@ const InterviewPage = () => {
     const [connectionStatus, setConnectionStatus] = useState('disconnected');
     const [framesSent, setFramesSent] = useState(0);
     const [aiMessage, setAiMessage] = useState('Hello! I am your AI Interview Coach. Click "Start Interview" to begin.');
+    const [inputText, setInputText] = useState('');
+    const [audioLevel, setAudioLevel] = useState(0); // For visualizing mic volume
+
+    const handleSendMessage = () => {
+        if (!inputText.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+
+        // Send text to backend
+        wsRef.current.send(JSON.stringify({
+            type: 'text',
+            text: inputText
+        }));
+
+        // Update local transcript immediately for better UX
+        setTranscript(prev => prev + (prev ? ' ' : '') + inputText);
+        setInputText('');
+    };
 
     // ============ VIDEO FRAME CAPTURE & STREAMING ============
 
@@ -32,7 +48,8 @@ const InterviewPage = () => {
     const initializeWebSocket = useCallback(() => {
         try {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/interview`;
+            const candidateId = localStorage.getItem('candidate_id');
+            const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/interview?candidate_id=${candidateId || ''}`;
 
             wsRef.current = new WebSocket(wsUrl);
 
@@ -72,9 +89,29 @@ const InterviewPage = () => {
                         }));
                         break;
 
+                    case 'transcript':
+                         if (data.text) {
+                            // Only update if text is meaningful
+                            if (data.text.trim().length > 0) {
+                                setTranscript(data.text);
+                            }
+                         }
+                         break;
+                    
                     case 'text':
                         if (data.ai_text) {
                             setAiMessage(data.ai_text);
+                        }
+                        break;
+
+                    case 'audio':
+                        if (data.audio) {
+                            try {
+                                const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
+                                audio.play();
+                            } catch (e) {
+                                console.error("Error playing audio:", e);
+                            }
                         }
                         break;
 
@@ -177,68 +214,120 @@ const InterviewPage = () => {
     }, [cameraActive]);
 
     /**
-     * Initialize audio recording and streaming
+     * Initialize audio recording and streaming using AudioContext (WAV)
      */
     const startAudioCapture = useCallback(async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // Close existing context if any
+            if (audioContextRef.current) {
+                audioContextRef.current.close();
+            }
 
-            audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            // Create new context with 16kHz sample rate (match backend)
+            // Browsers might ignore this and use hardware rate (e.g., 44.1k/48k)
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            audioContextRef.current = new AudioContextClass(); // Let browser decide rate for stability
+            const context = audioContextRef.current;
+            const actualSampleRate = context.sampleRate;
+            console.log("Audio Sample Rate:", actualSampleRate);
 
-            // Use MediaRecorder for audio chunks
-            mediaRecorderRef.current = new MediaRecorder(stream, {
-                mimeType: 'audio/webm;codecs=opus', // or audio/webm
-            });
+            const source = context.createMediaStreamSource(stream);
+            
+            // Use ScriptProcessor for raw PCM access
+            // Buffer size 4096, 1 input channel, 1 output channel
+            const processor = context.createScriptProcessor(4096, 1, 1);
+            
+            source.connect(processor);
+            processor.connect(context.destination);
 
-            let audioChunks = [];
+            let audioBuffer = [];
+            // Send smaller chunks (0.5s) for lower latency
+            const BUFFER_SIZE = Math.floor(actualSampleRate / 2);
 
-            mediaRecorderRef.current.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunks.push(event.data);
+            processor.onaudioprocess = (e) => {
+                const inputData = e.inputBuffer.getChannelData(0);
+                audioBuffer.push(...inputData);
+                
+                // Calculate simple volume for visualization (Average Amplitude)
+                let sum = 0;
+                for (let i = 0; i < inputData.length; i++) {
+                    sum += Math.abs(inputData[i]);
+                }
+                const avg = sum / inputData.length;
+                setAudioLevel(Math.min(100, avg * 500)); // Amplify for visibility
+
+                if (audioBuffer.length >= BUFFER_SIZE) {
+                     // console.log("Sending Audio Chunk:", audioBuffer.length); // DEBUG
+                    sendAudioChunk(new Float32Array(audioBuffer), actualSampleRate);
+                    // Keep overlap? No, clear mostly.
+                    audioBuffer = []; 
                 }
             };
 
-            mediaRecorderRef.current.onstop = async () => {
-                if (audioChunks.length === 0) return;
+            // Helper to encode Float32 PCM to WAV (16-bit)
+            const sendAudioChunk = (samples, sampleRate) => {
+                const buffer = new ArrayBuffer(44 + samples.length * 2);
+                const view = new DataView(buffer);
 
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                audioChunks = []; // Clear buffer
-
-                // Convert to base64
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = () => {
-                    const base64Audio = reader.result.split(',')[1];
-                    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(JSON.stringify({
-                            type: 'audio_chunk',
-                            audio: base64Audio,
-                            timestamp: Date.now(),
-                        }));
+                // Write WAV Header
+                const writeString = (view, offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
                     }
                 };
-            };
 
-            mediaRecorderRef.current.start();
+                writeString(view, 0, 'RIFF');
+                view.setUint32(4, 36 + samples.length * 2, true);
+                writeString(view, 8, 'WAVE');
+                writeString(view, 12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true); // PCM
+                view.setUint16(22, 1, true); // Mono
+                view.setUint32(24, sampleRate, true); // Actual Sample Rate
+                view.setUint32(28, sampleRate * 2, true); // Byte Rate
+                view.setUint16(32, 2, true); // Block Align
+                view.setUint16(34, 16, true); // Bits per Sample
+                writeString(view, 36, 'data');
+                view.setUint32(40, samples.length * 2, true);
 
-            // Send audio chunks every 2 seconds by restart 
-            // (This is a simple way to chunk without complex stream processing)
-            const audioInterval = setInterval(() => {
-                if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-                    mediaRecorderRef.current.stop();
-                    // Wait slightly? No, start immediately.
-                    // But internal stop is async. 
-                    // Better pattern: start new recording after stop. 
-                    // But simple restarting works for chunks usually.
-                    setTimeout(() => {
-                        if (isRecording && mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
-                            mediaRecorderRef.current.start();
-                        }
-                    }, 100);
+                // Write Data (Float32 -> Int16)
+                let offset = 44;
+                for (let i = 0; i < samples.length; i++) {
+                    let s = Math.max(-1, Math.min(1, samples[i]));
+                    // Convert to 16-bit PCM
+                    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                    offset += 2;
                 }
-            }, 2000);
 
-            mediaRecorderRef.current._interval = audioInterval;
+                // Send to backend
+                const bytes = new Uint8Array(buffer);
+                let binary = '';
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                const base64Audio = btoa(binary);
+                
+                if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({
+                        type: 'audio_chunk',
+                        audio: base64Audio,
+                        timestamp: Date.now(),
+                    }));
+                }
+            };
+            
+            // Store reference for cleanup (mocking MediaRecorder interface for compatibility)
+            mediaRecorderRef.current = {
+                stop: () => {
+                    processor.disconnect();
+                    source.disconnect();
+                    if (stream) stream.getTracks().forEach(track => track.stop());
+                },
+                state: 'recording'
+            };
 
         } catch (error) {
             console.error('Failed to initialize audio recording:', error);
@@ -295,7 +384,15 @@ const InterviewPage = () => {
         // Stop audio recording
         if (mediaRecorderRef.current) {
             if (mediaRecorderRef.current._interval) clearInterval(mediaRecorderRef.current._interval);
-            if (mediaRecorderRef.current.state !== 'inactive') mediaRecorderRef.current.stop();
+            if (mediaRecorderRef.current.state && mediaRecorderRef.current.state !== 'inactive') {
+                 mediaRecorderRef.current.stop();
+            }
+        }
+        
+        // Close AudioContext if active
+        if (audioContextRef.current) {
+            audioContextRef.current.close().catch(e => console.error(e));
+            audioContextRef.current = null;
         }
 
         // Notify backend
@@ -367,11 +464,11 @@ const InterviewPage = () => {
                                 <div style={{ width: 50, height: 2, background: 'white' }}></div>
                             </div>
                             <div className="listening-indicator">
-                                <div className="bar"></div>
-                                <div className="bar"></div>
-                                <div className="bar"></div>
-                                <div className="bar"></div>
-                                <div className="bar"></div>
+                                <div className="bar" style={{height: `${10 + audioLevel}%`, transition: 'height 0.1s', animation: 'none'}}></div>
+                                <div className="bar" style={{height: `${10 + audioLevel * 1.5}%`, transition: 'height 0.1s', animation: 'none'}}></div>
+                                <div className="bar" style={{height: `${10 + audioLevel * 2}%`, transition: 'height 0.1s', animation: 'none'}}></div>
+                                <div className="bar" style={{height: `${10 + audioLevel * 1.5}%`, transition: 'height 0.1s', animation: 'none'}}></div>
+                                <div className="bar" style={{height: `${10 + audioLevel}%`, transition: 'height 0.1s', animation: 'none'}}></div>
                             </div>
                             <div style={{ marginTop: 20, color: '#888', fontSize: '0.9rem', textAlign: 'center', padding: '0 40px' }}>
                                 {aiMessage}
@@ -392,7 +489,7 @@ const InterviewPage = () => {
                         <div className="transcript-overlay">
                             <div className="transcript-label">TRANSCRIPT</div>
                             <div className="current-transcript">
-                                {transcript || "Listening..."}
+                                {transcript ? transcript : (isRecording ? "Listening..." : "Ready")}
                             </div>
                         </div>
                     </div>
@@ -407,6 +504,11 @@ const InterviewPage = () => {
                             type="text"
                             className="chat-input"
                             placeholder="Type response..."
+                            value={inputText}
+                            onChange={(e) => setInputText(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSendMessage();
+                            }}
                         />
                     </div>
 

@@ -3,27 +3,27 @@ import zipfile
 import os
 
 # Configuration
-base_dir = r"c:\Users\rahul\Desktop\project\finalyear projecct\ai_interview_system"
-output_zip = r"C:\Users\rahul\.gemini\antigravity\brain\1d3f9840-1129-40f9-850b-bb2031f22d8b\ai-interview-minimal.zip"
+base_dir = r"c:\Users\amith\OneDrive\Desktop\mainproject\finalyear"
+output_zip = r"c:\Users\amith\OneDrive\Desktop\ai-interview-minimal.zip"
 
 # Files and Folders to include explicitly (Relative to base_dir)
 includes = [
-    "server.py",
-    "requirements.txt",
-    "store.py",
-    "report_generator.py",
-    "email_service.py",
-    "dataset_loader.py",
-    "resume_parser.py",
-    "questions.json",
+    "backend/server.py",
+    "backend/requirements.txt",
+    "backend/store.py",
+    "backend/report_generator.py",
+    "backend/email_service.py",
+    "backend/dataset_loader.py",
+    "backend/resume_parser.py",
+    "backend/questions.json",
     # Agents
-    "agents/lazy_loader.py",
-    "brain_agent/orchestrator.py",
-    "verbal_agent/verbal_analyzer.py",
-    "vocal_agent/vocal_analyzer.py",
-    "non_verbal_agent/video_analyzer.py",
-    "scoring_agent/engine.py",
-    "scoring_agent/keyword_scorer.py",
+    "backend/agents/lazy_loader.py",
+    "backend/brain_agent/orchestrator.py",
+    "backend/verbal_agent/verbal_analyzer.py",
+    "backend/vocal_agent/vocal_analyzer.py",
+    "backend/non_verbal_agent/video_analyzer.py",
+    "backend/scoring_agent/engine.py",
+    "backend/scoring_agent/keyword_scorer.py",
     # Frontend
     "web_client/package.json",
     "web_client/vite.config.js",

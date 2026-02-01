@@ -2,8 +2,10 @@ import asyncio
 import json
 import base64
 import time
+import uuid
 import cv2
 import numpy as np
+import subprocess
 import os
 import io
 import soundfile as sf
@@ -19,7 +21,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ===== LOGGING =====
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("server_debug.log"),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 # ===== IMPORTS =====
@@ -126,6 +135,17 @@ def get_verbal_analyzer() -> VerbalAnalyzer:
         _verbal_analyzer = VerbalAnalyzer()
     return _verbal_analyzer
 
+# Global Singleton for TTS
+_tts_engine = None
+
+def get_tts_engine():
+    global _tts_engine
+    if _tts_engine is None:
+        # Import here to avoid circular or early import issues
+        from tts_agent.tts_engine import TTSEngine
+        _tts_engine = TTSEngine()
+    return _tts_engine
+
 # ===== WEBSOCKET CONNECTION MANAGER =====
 
 class ConnectionManager:
@@ -218,7 +238,7 @@ async def health_check():
 # ===== WEBSOCKET ENDPOINT =====
 
 @app.websocket("/ws/interview")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, candidate_id: str = None):
     """
     Main WebSocket endpoint for real-time interview processing
     Handles video frames, audio chunks, and interview events
@@ -226,8 +246,16 @@ async def websocket_endpoint(websocket: WebSocket):
     client_id = f"client_{id(websocket)}"
     await manager.connect(websocket, client_id)
     
+    # Retrieve Candidate Data (Resume)
+    resume_text = ""
+    if candidate_id and store:
+        candidate = await store.get_candidate(candidate_id)
+        if candidate:
+            resume_text = candidate.get("resume_text", "")
+            logger.info(f"Loaded resume for candidate {candidate_id}: {len(resume_text)} chars")
+    
     # Brain Agent is stateful, need new instance per user
-    brain_agent = BrainAgent(resume_text="") 
+    brain_agent = BrainAgent(resume_text=resume_text) 
     
     # Aggregation Buffers
     transcript_buffer = []
@@ -236,11 +264,13 @@ async def websocket_endpoint(websocket: WebSocket):
     keyword_results = []
     
     # Audio Buffer for Transcription
-    # Changed SILENCE_LIMIT to 3 (Approx 1.5s latency) for more natural pausing
+    # Changed SILENCE_LIMIT to 2 (Approx 1s latency with 0.5s chunks) for robustness
     audio_buffer_np = np.array([], dtype=np.float32)
     silence_chunks = 0
-    IS_SPEAKING_THRESHOLD = -40.0 # dB
-    SILENCE_LIMIT = 3 
+    IS_SPEAKING_THRESHOLD = -50.0 # dB - Higher sensitivity (captures whispers)
+    SILENCE_LIMIT = 4 # 2.0 seconds of silence required to trigger (prevents cutting sentences)
+    MAX_BUFFER_SIZE = 16000 * 30 # 30 seconds limit to prevent OOM
+    MAX_Chunk_Duration = 16000 * 10 # 10 seconds force transcribe
     
     # Initial Greeting
     try:
@@ -313,15 +343,42 @@ async def websocket_endpoint(websocket: WebSocket):
                     try:
                         # Decode audio
                         audio_bytes = base64.b64decode(audio_base64)
+                        # print(f"Received Audio Chunk: {len(audio_bytes)} bytes") # DEBUG: Too noisy
                         
-                        # 1. Run vocal analysis in thread pool
+                        # 1. DECODE AUDIO TO PCM (FFmpeg)
+                        # Ensure robust decoding for BOTH analysis and transcription
+                        # Explicitly use -f wav since we know client sends WAV
+                        process = subprocess.Popen(
+                            ["ffmpeg", "-y", "-v", "error", "-f", "wav", "-i", "pipe:0", "-f", "s16le", "-ac", "1", "-ar", "16000", "pipe:1"],
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE
+                        )
+                        out, err = process.communicate(input=audio_bytes)
+                        
+                        if process.returncode != 0:
+                            # Only log error if no output produced
+                            logger.error(f"FFmpeg Error: {err.decode('utf-8', errors='ignore')}")
+                            continue
+                            
+                        # Convert raw PCM16 to float32
+                        y_chunk = np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
+                        
+                        if len(y_chunk) == 0:
+                            print("FFmpeg produced empty audio chunk")
+                            continue
+
+                        # 2. RUN VOCAL ANALYSIS (on decoded PCM)
                         loop = asyncio.get_event_loop()
                         v_result = await loop.run_in_executor(
                             ml_executor,
                             get_vocal_analyzer().analyze_audio,
-                            audio_bytes
+                            y_chunk
                         )
                         
+                        # Debug Loudness
+                        # print(f"Loudness: {v_result.get('loudness_db')} dB")
+
                         if v_result.get('success'):
                             score = v_result.get('confidence_score', 0)
                             if score is not None:
@@ -337,24 +394,43 @@ async def websocket_endpoint(websocket: WebSocket):
                             "success": v_result.get('success', False)
                         })
 
-                        # 2. Accumulate Audio for Transcription
+                        # 3. ACCUMULATE AND PROCESS TRANSCRIPTION
                         try:
-                            # Read raw samples using soundfile (robust to webm chunks)
-                            y_chunk, sr_chunk = sf.read(io.BytesIO(audio_bytes))
-                            if len(y_chunk) > 0:
+                                # logger.info(f"DEBUG: Processed audio chunk {len(y_chunk)} samples, Loudness: {v_result.get('loudness_db')}")
+                                
+                                sr_chunk = 16000 # We forced 16k
+                                
                                 audio_buffer_np = np.append(audio_buffer_np, y_chunk)
+                                
+                                # Safety Cap
+                                if len(audio_buffer_np) > MAX_BUFFER_SIZE:
+                                    logger.warning("Audio buffer exceeded limit, resetting")
+                                    audio_buffer_np = np.array([], dtype=np.float32)
+                                    silence_chunks = 0
+                                    continue
                                 
                                 # Silence Detection Logic
                                 loudness = v_result.get('loudness_db', -80.0)
                                 if loudness > IS_SPEAKING_THRESHOLD:
                                     silence_chunks = 0 # Reset silence
+                                    print(f"Speaking... ({loudness:.1f} dB) | Buffer: {len(audio_buffer_np)/16000:.1f}s")
                                 else:
                                     silence_chunks += 1
+                                    print(f"Silence... ({loudness:.1f} dB) | Buffer: {len(audio_buffer_np)/16000:.1f}s") # DEBUG
                                 
-                                # TRIGGER TRANSCRIPTION if silence persists and we have enough audio
-                                if silence_chunks >= SILENCE_LIMIT and len(audio_buffer_np) > 0:
+                                # TRIGGER TRANSCRIPTION if silence persists OR if buffer is getting long (live feedback)
+                                # Also trigger if buffer is getting too long (e.g. 10s) without silence? Maybe later.
+                                should_transcribe = False
+                                
+                                # Use both silence and total duration to decide when to transcribe
+                                if silence_chunks >= SILENCE_LIMIT and len(audio_buffer_np) > 8000: # 0.5s min
+                                    print("Silence detected, starting transcription...")
+                                    should_transcribe = True
+                                elif len(audio_buffer_np) > 160000: # 10 seconds forced dump to prevent OOM
+                                    print("Buffer limit reached (10s), forcing transcription...")
+                                    should_transcribe = True
                                     
-                                    # Save buffer to temp file
+                                if should_transcribe:
                                     temp_filename = f"temp_transcribe_{client_id}.wav"
                                     sf.write(temp_filename, audio_buffer_np, samplerate=sr_chunk)
                                     
@@ -383,15 +459,47 @@ async def websocket_endpoint(websocket: WebSocket):
                                             "sender": "user"
                                         })
                                         
+                                        # Only get brain response if it was a "Silence" trigger (end of sentence)
+                                        # If it was a forced buffer dump, maybe we wait?
+                                        # For now, always respond to keep it simple, but this might interrupt mid-sentence.
+                                        # Let's assume if user talks for 5s straight, they might want feedback.
+                                        
                                         # 3. GET BRAIN RESPONSE
                                         # Wrapped in Try-Except for Safety
                                         try:
                                             ai_text = brain_agent.get_response(transcribed_text)
+                                            
                                             # Send AI Response to UI
                                             await websocket.send_json({
                                                 "type": "text", 
                                                 "ai_text": ai_text
                                             })
+
+                                            # 4. GENERATE SPEECH (TTS)
+                                            try:
+                                                loop = asyncio.get_event_loop()
+                                                audio_path = await loop.run_in_executor(
+                                                    ml_executor,
+                                                    get_tts_engine().speak,
+                                                    ai_text
+                                                )
+                                                
+                                                if audio_path and os.path.exists(audio_path):
+                                                    with open(audio_path, "rb") as audio_file:
+                                                        audio_bytes = audio_file.read()
+                                                        audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
+                                                        
+                                                    # Send Audio to UI
+                                                    await websocket.send_json({
+                                                        "type": "audio",
+                                                        "audio": audio_b64
+                                                    })
+                                                    
+                                                    # Cleanup
+                                                    try: os.remove(audio_path)
+                                                    except: pass
+                                            except Exception as tts_e:
+                                                logger.error(f"TTS Error: {tts_e}")
                                         except Exception as e:
                                             logger.error(f"Brain Agent Error: {e}")
                                             await websocket.send_json({
@@ -415,6 +523,32 @@ async def websocket_endpoint(websocket: WebSocket):
                     try:
                         ai_text = brain_agent.get_response(user_text)
                         await websocket.send_json({"type": "text", "ai_text": ai_text})
+
+                        # GENERATE SPEECH (TTS)
+                        try:
+                            loop = asyncio.get_event_loop()
+                            audio_path = await loop.run_in_executor(
+                                ml_executor,
+                                get_tts_engine().speak,
+                                ai_text
+                            )
+                            
+                            if audio_path and os.path.exists(audio_path):
+                                with open(audio_path, "rb") as audio_file:
+                                    audio_bytes = audio_file.read()
+                                    audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
+                                    
+                                # Send Audio to UI
+                                await websocket.send_json({
+                                    "type": "audio",
+                                    "audio": audio_b64
+                                })
+                                
+                                # Cleanup
+                                try: os.remove(audio_path)
+                                except: pass
+                        except Exception as tts_e:
+                            logger.error(f"TTS Error: {tts_e}")
                     except Exception as e:
                         logger.error(f"Brain Text Error: {e}")
                     
@@ -454,25 +588,42 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     # Aggregate Final Scores
                     mean_nv = np.mean(non_verbal_scores) if non_verbal_scores else 0.0
-                    if mean_nv <= 1.0: mean_nv *= 100 # Adjust scale if needed
-                    
                     mean_vocal = np.mean(vocal_scores) if vocal_scores else 0.0
                     
                     mean_keyword = 0.0
                     if keyword_results:
-                        mean_keyword = keyword_results[-1].get('keyword_score', 0)
+                        # Extract just the scores from the result dicts
+                        kw_scores = [k.get('keyword_score', 0) for k in keyword_results]
+                        mean_keyword = np.mean(kw_scores) if kw_scores else 0.0
                     
-                    final_score = (mean_nv + mean_vocal + mean_keyword) / 3
+                    # Weighted Final Score (Example: 40% Communication, 40% Keywords, 20% Vocal)
+                    final_score = (0.4 * mean_nv) + (0.2 * mean_vocal) + (0.4 * mean_keyword)
 
-                    # Send Final Score
+                    # Prepare Session Data
+                    scores_data = {
+                        "non_verbal_score": round(mean_nv, 1), 
+                        "vocal_score": round(mean_vocal, 1),
+                        "keyword_score": round(mean_keyword, 1),
+                        "final_score": round(final_score, 1) 
+                    }
+
+                    # SAVE TO DB
+                    if store and candidate_id:
+                        session_data = {
+                            "candidate_id": candidate_id,
+                            "session_id": str(uuid.uuid4()),
+                            "scores": scores_data,
+                            "transcript": " ".join(transcript_buffer),
+                            "duration_seconds": 0, # TODO: Track duration
+                            "completed": True
+                        }
+                        await store.add_session(session_data)
+                        logger.info(f"Session saved for {candidate_id}")
+
+                    # Send Final Score to Client
                     await websocket.send_json({
                         "type": "final_score",
-                        "scores": {
-                            "non_verbal_score": round(mean_nv, 1), 
-                            "vocal_score": round(mean_vocal, 1),
-                            "keyword_score": round(mean_keyword, 1),
-                            "final_score": round(final_score, 1) 
-                        }
+                        "scores": scores_data
                     })
 
     except WebSocketDisconnect:

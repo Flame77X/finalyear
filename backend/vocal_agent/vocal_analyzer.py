@@ -10,24 +10,41 @@ class VocalAnalyzer:
     def __init__(self, sample_rate=16000):
         self.sample_rate = sample_rate
 
-    def analyze_audio(self, audio_bytes: bytes) -> dict:
+    def analyze_audio(self, audio_data) -> dict:
         """
         Analyze audio chunk for vocal confidence metrics.
+        Args:
+            audio_data: Can be raw bytes (file content) OR numpy array (PCM data).
         Returns: Pitch, Loudness, Confidence Score (0-100)
         """
         try:
-            # Load audio
-            y, sr = sf.read(io.BytesIO(audio_bytes))
-            if len(y) == 0:
+            y = None
+            sr = self.sample_rate
+
+            # Handle different inputs
+            if isinstance(audio_data, np.ndarray):
+                y = audio_data
+                # Assume input is already at correct sample rate if passed as array from server
+                # or we could require sr to be passed, but server uses 16000 uniformly.
+            elif isinstance(audio_data, bytes):
+                # Load from bytes (legacy behavior / fallback)
+                y, file_sr = sf.read(io.BytesIO(audio_data))
+                if file_sr != self.sample_rate:
+                    y = librosa.resample(y, orig_sr=file_sr, target_sr=self.sample_rate)
+            else:
                 return self._empty_response()
-                
-            # Resample if needed
-            if sr != self.sample_rate:
-                y = librosa.resample(y, orig_sr=sr, target_sr=self.sample_rate)
+
+            if y is None or len(y) == 0:
+                return self._empty_response()
+            
+            # Ensure float32
+            if y.dtype != np.float32:
+                y = y.astype(np.float32)
 
             # 1. Loudness in dB (RMS)
             rms = np.sqrt(np.mean(y**2))
-            loudness_db = 20 * np.log10(rms) if rms > 0 else -80.0
+            loudness_db = 20 * np.log10(rms) if rms > 1e-9 else -80.0
+
             
             # Stability (Standard Deviation of Amplitude)
             loudness_stability = 1.0 - min(1.0, np.std(y) * 5) # Heuristic
@@ -57,11 +74,11 @@ class VocalAnalyzer:
             confidence_raw = (vol_score * 0.4 + pitch_score * 0.3 + rate_score * 0.3) * 100
             
             return {
-                'pitch_hz': round(pitch_hz, 1),
-                'loudness_db': round(loudness_db, 1),
-                'loudness_stability': round(loudness_stability, 2),
-                'speech_rate': round(words_per_minute, 0),
-                'confidence_score': round(confidence_raw, 1),
+                'pitch_hz': float(round(pitch_hz, 1)),
+                'loudness_db': float(round(loudness_db, 1)),
+                'loudness_stability': float(round(loudness_stability, 2)),
+                'speech_rate': float(round(words_per_minute, 0)),
+                'confidence_score': float(round(confidence_raw, 1)),
                 'success': True
             }
 
