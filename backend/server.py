@@ -235,6 +235,54 @@ async def health_check():
         "active_connections": len(manager.active_connections)
     }
 
+# ===== ADMIN ENDPOINTS =====
+@app.get("/admin/sessions")
+async def get_all_sessions():
+    """Retrieve all interview sessions"""
+    if not store or not store.db:
+        return {"error": "Database not connected"}
+    
+    sessions = []
+    try:
+        cursor = store.db.sessions.find().sort("saved_at", -1).limit(50)
+        async for session in cursor:
+            session["_id"] = str(session["_id"])
+            sessions.append(session)
+        return sessions
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/admin/sessions/{session_id}")
+async def get_session_details(session_id: str):
+    """Retrieve details of a specific session"""
+    if not store or not store.db:
+        return {"error": "Database not connected"}
+        
+    try:
+        session = await store.db.sessions.find_one({"session_id": session_id})
+        if session:
+            session["_id"] = str(session["_id"])
+            return session
+        return {"error": "Session not found"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/admin/candidates")
+async def get_all_candidates():
+    """Retrieve all registered candidates"""
+    if not store or not store.db:
+        return {"error": "Database not connected"}
+    
+    candidates = []
+    try:
+        cursor = store.db.candidates.find().sort("created_at", -1).limit(50)
+        async for candidate in cursor:
+            candidate["_id"] = str(candidate["_id"])
+            candidates.append(candidate)
+        return candidates
+    except Exception as e:
+        return {"error": str(e)}
+
 # ===== WEBSOCKET ENDPOINT =====
 
 @app.websocket("/ws/interview")
@@ -452,6 +500,9 @@ async def websocket_endpoint(websocket: WebSocket, candidate_id: str = None):
                                     if transcribed_text and len(transcribed_text.strip()) > 1:
                                         print(f"User Said: {transcribed_text}")
                                         
+                                        # SAVE TO BUFFER (Important for valid report generation)
+                                        transcript_buffer.append(transcribed_text)
+
                                         # Send Transcript Update to UI
                                         await websocket.send_json({
                                             "type": "transcript",
@@ -459,6 +510,30 @@ async def websocket_endpoint(websocket: WebSocket, candidate_id: str = None):
                                             "sender": "user"
                                         })
                                         
+                                        # RUN KEYWORD ANALYSIS (Async)
+                                        full_transcript = " ".join(transcript_buffer)
+                                        if len(full_transcript) > 50: # Only analyze if enough content
+                                            try:
+                                                loop = asyncio.get_event_loop()
+                                                kw_result = await loop.run_in_executor(
+                                                    ml_executor,
+                                                    get_keyword_scorer().extract_and_score,
+                                                    full_transcript,
+                                                    "cse" # Default to CSE for now
+                                                )
+                                                
+                                                keyword_results.append(kw_result)
+                                                
+                                                # Send partial keyword update
+                                                await websocket.send_json({
+                                                    "type": "keyword_analysis",
+                                                    "keyword_score": kw_result.get('keyword_score', 0),
+                                                    "top_keywords": kw_result.get('matched_keywords', []),
+                                                    "success": kw_result.get('success', False)
+                                                })
+                                            except Exception as e:
+                                                logger.error(f"Keyword extraction error (Audio trigger): {e}")
+
                                         # Only get brain response if it was a "Silence" trigger (end of sentence)
                                         # If it was a forced buffer dump, maybe we wait?
                                         # For now, always respond to keep it simple, but this might interrupt mid-sentence.
