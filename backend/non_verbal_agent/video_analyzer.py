@@ -97,7 +97,7 @@ class NonVerbalAgent:
         emo_balance = min(1.0, max(0.0, (pos_score - neg_score + 1) / 2)) # Normalize -1..1 to 0..1
         
         total = (emo_balance * 0.4) + (eye_contact * 0.3) + (posture * 0.3)
-        return round(total, 2)
+        return round(total * 100, 2) # Return 0-100 scale
 
     def _empty_response(self):
         return {
